@@ -24,6 +24,10 @@ export const Dashboard: React.FC = () => {
   const [quizChapterId, setQuizChapterId] = useState<string>('all');
   const [quizDifficulty, setQuizDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('easy');
   const [quizActive, setQuizActive] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const masteredCount = chaptersData.filter(ch => stats.masteredChapters.includes(ch.slug)).length;
+  const progressPercent = Math.round((masteredCount / chaptersData.length) * 100) || 0;
 
   const activeChapter = chaptersData.find((c) => c.id === selectedChapterId);
 
@@ -226,10 +230,61 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Search and Progress Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+              {/* Search Bar */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                  Rechercher un chapitre
+                </label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-sm">
+                    🔍
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Ex: Première guerre, mondialisation, Ve République..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-550 transition-all duration-150"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-xs font-bold text-slate-400 hover:text-slate-650 dark:hover:text-slate-200"
+                    >
+                      Effacer
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-2 flex flex-col justify-center">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-500 dark:text-slate-400">Progression des révisions</span>
+                  <span className="text-blue-600 dark:text-blue-400">{progressPercent}% maîtrisé ({masteredCount} / {chaptersData.length} ch.)</span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-850 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200/30 dark:border-slate-800">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-violet-600 h-full rounded-full transition-all duration-500 shadow-md shadow-blue-500/20"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Chapters Grid - grouped by subject */}
             {(['histoire', 'geographie'] as const).map((subject) => {
-              const subjectChapters = chaptersData.filter(ch => ch.subject === subject);
-              if (subjectChapters.length === 0) return null;
+              const filteredChapters = chaptersData.filter(ch => {
+                const matchesSubject = ch.subject === subject;
+                const matchesSearch = searchQuery === '' || 
+                  ch.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                  ch.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  ch.introduction.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesSubject && matchesSearch;
+              });
+              if (filteredChapters.length === 0) return null;
               const isHist = subject === 'histoire';
               return (
                 <div key={subject} className="space-y-6">
@@ -243,12 +298,12 @@ export const Dashboard: React.FC = () => {
                         ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400'
                         : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
                     }`}>
-                      {subjectChapters.length} chapitres
+                      {filteredChapters.length} {filteredChapters.length > 1 ? 'chapitres' : 'chapitre'}
                     </span>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {subjectChapters.map((ch) => {
+                    {filteredChapters.map((ch) => {
                       const isMastered = stats.masteredChapters.includes(ch.slug);
                       const isWeak = stats.weakChapters.includes(ch.slug);
                       const isFav = favorites.includes(ch.slug);

@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Chapter } from '../types';
 import { TimelineView } from './TimelineView';
 import { MindMap } from './MindMap';
@@ -11,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, BookOpen, FileText, Network, Calendar, Users, Clock, 
   Sparkles, AlertCircle, BookMarked, HelpCircle as HelpIcon,
-  LucideIcon
+  Volume2, VolumeX, Printer, LucideIcon
 } from 'lucide-react';
 import { useProgress } from '../context/ProgressContext';
 
@@ -25,8 +23,48 @@ type TabType = 'cours' | 'resume' | 'mindmap' | 'timeline' | 'characters' | 'dat
 export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) => {
   const [activeTab, setActiveTab] = useState<TabType>('cours');
   const { favorites, toggleFavorite } = useProgress();
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const isFavorited = favorites.includes(chapter.slug);
+
+  useEffect(() => {
+    // Stop speaking when changing tabs or unmounting
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [activeTab]);
+
+  const speakText = (text: string) => {
+    if (typeof window === 'undefined') return;
+    
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    // Remove HTML tags for reading
+    const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 1.0;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
 
   const tabs: { id: TabType; label: string; icon: LucideIcon }[] = [
     { id: 'cours', label: 'Cours', icon: BookOpen },
@@ -117,10 +155,43 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'cours' && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-sm">
+              <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-sm print-area">
                 <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
+                  {/* Control Row (Print and Speak) */}
+                  <div className="flex flex-wrap gap-2.5 no-print border-b border-slate-100 dark:border-slate-850 pb-4">
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        if (isSpeaking) {
+                          stopSpeaking();
+                        } else {
+                          speakText(chapter.courseContent);
+                        }
+                      }}
+                      className={`py-2 px-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ${
+                        isSpeaking
+                          ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-950/20 dark:border-red-800'
+                          : 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-950/20 dark:border-blue-800'
+                      }`}
+                    >
+                      {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                      <span>{isSpeaking ? "Arrêter l'écoute" : "Écouter la leçon"}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        window.print();
+                      }}
+                      className="py-2 px-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-150"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Imprimer / PDF</span>
+                    </button>
+                  </div>
+
                   {/* Warning Traps Block */}
-                  <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-500 text-orange-850 dark:text-orange-300 rounded-r flex gap-3">
+                  <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-500 text-orange-850 dark:text-orange-300 rounded-r flex gap-3 no-print">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     <div>
                       <span className="font-bold block mb-0.5">Pièges fréquents du Brevet :</span>
@@ -140,7 +211,7 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
                   />
 
                   {/* Facts block */}
-                  <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                  <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 no-print">
                     <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg mb-4 flex items-center gap-1.5">
                       <Sparkles className="w-5 h-5 text-yellow-500" />
                       Le Savais-tu ? (Anecdotes historiques)
@@ -158,11 +229,44 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
             )}
 
             {activeTab === 'resume' && (
-              <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-3xl p-6 md:p-8 shadow-sm">
+              <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-3xl p-6 md:p-8 shadow-sm print-area">
                 <div className="prose prose-slate dark:prose-invert max-w-none">
+                  {/* Control Row (Print and Speak) */}
+                  <div className="flex flex-wrap gap-2.5 no-print border-b border-slate-100 dark:border-slate-850 pb-4 mb-6">
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        if (isSpeaking) {
+                          stopSpeaking();
+                        } else {
+                          speakText(chapter.summary);
+                        }
+                      }}
+                      className={`py-2 px-4 rounded-xl border font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ${
+                        isSpeaking
+                          ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-950/20 dark:border-red-800'
+                          : 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-950/20 dark:border-blue-800'
+                      }`}
+                    >
+                      {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                      <span>{isSpeaking ? "Arrêter l'écoute" : "Écouter la fiche"}</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        soundManager.playClick();
+                        window.print();
+                      }}
+                      className="py-2 px-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-150"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Imprimer / PDF</span>
+                    </button>
+                  </div>
+
                   {/* Clean presentation sheet */}
                   <div className="max-w-3xl mx-auto space-y-6 text-slate-700 dark:text-slate-300">
-                    <h3 className="text-xl font-bold text-center text-slate-850 dark:text-slate-50 mb-6">
+                    <h3 className="text-xl font-bold text-center text-slate-850 dark:text-slate-550 mb-6">
                       Fiche de Révision Flash : Tout retenir en 2 minutes
                     </h3>
                     {chapter.summary.split('\n\n').map((para, i) => (
@@ -240,6 +344,29 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <style>{`
+        @media print {
+          body {
+            background-color: white !important;
+            color: black !important;
+          }
+          header, nav, button, footer, .no-print, .sticky {
+            display: none !important;
+          }
+          .print-area {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+            color: black !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

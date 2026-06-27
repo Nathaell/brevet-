@@ -5,7 +5,7 @@ import { Question, Chapter } from '../types';
 import { useProgress } from '../context/ProgressContext';
 import { soundManager } from './SoundManager';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Award, ArrowRight, HelpCircle, RefreshCw, Volume2, Timer } from 'lucide-react';
+import { CheckCircle2, XCircle, Award, ArrowRight, HelpCircle, RefreshCw, Volume2, VolumeX, Timer } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface QuizEngineProps {
@@ -36,6 +36,50 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
   const [startTime, setStartTime] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [failedQuestionIds, setFailedQuestionIds] = useState<string[]>([]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Stop speaking when question changes or when quiz is closed/unmounted
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      }
+    };
+  }, [currentIndex, quizStarted]);
+
+  const speakQuestion = () => {
+    if (typeof window === 'undefined') return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const currentQuestion = questions[currentIndex];
+    if (!currentQuestion) return;
+
+    let textToSpeak = currentQuestion.question;
+    
+    // For QCM, also speak the options
+    if ((currentQuestion.type === 'qcm' || currentQuestion.type === 'date' || currentQuestion.type === 'personnage') && currentQuestion.options) {
+      textToSpeak += ". Choix possibles : " + currentQuestion.options.map((opt, i) => `${i + 1} : ${opt}`).join(', ');
+    } else if (currentQuestion.type === 'boolean') {
+      textToSpeak += ". Vrai ou Faux ? ";
+    }
+
+    const cleanText = textToSpeak.replace(/\[|\]/g, ' '); // remove fill-in-the-blank brackets
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 1.0;
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   // Open question self-grade state
   const [selfGrade, setSelfGrade] = useState<boolean | null>(null);
@@ -247,8 +291,21 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
       
       completeQuiz(chapter.slug, roundedScore, finalTime, failedQuestionIds);
       
-      // Trigger celebrate confetti on 16/20+
-      if (roundedScore >= 16) {
+      // Trigger celebrate confetti on 16/20+, with a double blast for a perfect 20/20
+      if (roundedScore === 20) {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 100,
+            spread: 100,
+            origin: { y: 0.5 }
+          });
+        }, 300);
+      } else if (roundedScore >= 16) {
         confetti({
           particleCount: 120,
           spread: 70,
@@ -399,9 +456,25 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
 
       {/* Question Card */}
       <div className="mb-6">
-        <h3 className="text-lg md:text-xl font-extrabold text-slate-850 dark:text-slate-150 leading-snug mb-6">
-          {currentQuestion.question}
-        </h3>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <h3 className="text-lg md:text-xl font-extrabold text-slate-850 dark:text-slate-155 leading-snug">
+            {currentQuestion.question}
+          </h3>
+          <button
+            onClick={() => {
+              soundManager.playClick();
+              speakQuestion();
+            }}
+            className={`p-2.5 rounded-xl border flex-shrink-0 transition-all duration-155 ${
+              isSpeaking
+                ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-950/20 dark:border-red-800'
+                : 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-950/20 dark:border-blue-800'
+            }`}
+            title="Écouter la question"
+          >
+            {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* Render options based on type */}
         {(currentQuestion.type === 'qcm' || currentQuestion.type === 'date' || currentQuestion.type === 'personnage') && currentQuestion.options && (
