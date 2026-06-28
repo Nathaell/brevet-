@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { put, list, del } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 
 interface Review {
   id: string;
@@ -16,16 +16,27 @@ const REVIEWS_BLOB_PATH = 'reviews/data.json';
 async function getReviewsList(): Promise<Review[]> {
   try {
     const { blobs } = await list({ prefix: REVIEWS_BLOB_PATH });
+    console.log('[getReviewsList] blobs found:', blobs.length, blobs.map(b => b.url));
+
     if (blobs.length === 0) return [];
 
     const blobToken = process.env.BLOB_READ_WRITE_TOKEN ?? '';
-    // Private blobs accept the RW token as a Bearer header
+    console.log('[getReviewsList] token present:', !!blobToken, 'length:', blobToken.length);
+
     const res = await fetch(blobs[0].url, {
       headers: { Authorization: `Bearer ${blobToken}` },
     });
-    if (!res.ok) return [];
-    return (await res.json()) as Review[];
-  } catch {
+    console.log('[getReviewsList] fetch status:', res.status);
+
+    if (!res.ok) {
+      console.error('[getReviewsList] fetch error:', await res.text());
+      return [];
+    }
+    const data = await res.json() as Review[];
+    console.log('[getReviewsList] reviews count:', data.length);
+    return data;
+  } catch (e) {
+    console.error('[getReviewsList] exception:', e);
     return [];
   }
 }
