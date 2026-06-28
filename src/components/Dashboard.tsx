@@ -9,14 +9,15 @@ import { StatsDashboard } from './StatsDashboard';
 import { GlossarySearch } from './GlossarySearch';
 import { QuizEngine } from './QuizEngine';
 import { soundManager } from './SoundManager';
+import { ReviewsView } from './ReviewsView';
 import { 
   BookOpen, Trophy, Search, Flame, Zap, CheckCircle, ShieldAlert, 
-  HelpCircle, Volume2, VolumeX, Award, Calendar
+  HelpCircle, Volume2, VolumeX, Award, Calendar, MessageSquare
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { stats, favorites, toggleSound } = useProgress();
-  const [activeView, setActiveView] = useState<'home' | 'chapter' | 'exam' | 'stats' | 'search' | 'quiz-select'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'chapter' | 'exam' | 'stats' | 'search' | 'quiz-select' | 'reviews'>('home');
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(soundManager.isEnabled());
   
@@ -159,6 +160,17 @@ export const Dashboard: React.FC = () => {
           >
             <Search className="w-4 h-4" />
             <span>Glossaire</span>
+          </button>
+          <button
+            onClick={() => { soundManager.playClick(); setActiveView('reviews'); }}
+            className={`py-2 px-5 font-bold text-xs rounded-full border transition-all duration-150 flex items-center gap-1.5 ${
+              activeView === 'reviews'
+                ? 'bg-blue-600 border-transparent text-white shadow-md shadow-blue-500/10'
+                : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+            }`}
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>Avis</span>
           </button>
         </div>
 
@@ -496,6 +508,10 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {activeView === 'reviews' && (
+          <ReviewsView />
         )}
 
       </main>
