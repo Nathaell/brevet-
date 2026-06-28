@@ -14,18 +14,12 @@ interface Review {
 const FALLBACK_FILE = path.join(process.cwd(), 'reviews_fallback.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'brevet2026';
 
-// Helper to check if Vercel KV is configured
-const isKvConfigured = () => {
-  return !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
-};
+// Unique free bucket ID for KVdb.io (100% free, no card, no signup)
+// Since this runs in Next.js Serverless API, the bucket ID is never exposed to the client
+const BUCKET_ID = 'nathan_brevet_reviews_prod_2026_9h2j5d8k';
+const KVDB_URL = `https://kvdb.io/${BUCKET_ID}/reviews`;
 
-// Lazy import @vercel/kv to avoid crashes in local dev when env vars are missing
-async function getKv() {
-  const { kv } = await import('@vercel/kv');
-  return kv;
-}
-
-// Fallback file helpers
+// Fallback file helpers (local dev)
 function readFallback(): Review[] {
   try {
     if (!fs.existsSync(FALLBACK_FILE)) {
@@ -47,6 +41,46 @@ function writeFallback(reviews: Review[]) {
   }
 }
 
+// Fetch all reviews from KVdb (or fallback to local file in dev)
+async function getReviewsList(): Promise<Review[]> {
+  try {
+    const res = await fetch(KVDB_URL, { 
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!res.ok) {
+      if (res.status === 404) return []; // Bucket/key doesn't exist yet
+      throw new Error(`KVdb returned ${res.status}`);
+    }
+    const text = await res.text();
+    if (!text.trim()) return [];
+    return JSON.parse(text) as Review[];
+  } catch (error) {
+    console.warn('Error reading from KVdb, falling back to local storage:', error);
+    return readFallback();
+  }
+}
+
+// Save reviews to KVdb (and fallback local file)
+async function saveReviewsList(reviews: Review[]): Promise<boolean> {
+  try {
+    const res = await fetch(KVDB_URL, {
+      method: 'PUT', // KVdb.io uses PUT to set values
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reviews)
+    });
+    
+    // Also save to local file for dev safety
+    writeFallback(reviews);
+    
+    return res.ok;
+  } catch (error) {
+    console.error('Error writing to KVdb:', error);
+    writeFallback(reviews);
+    return false;
+  }
+}
+
 // POST: Add a new review
 export async function POST(request: Request) {
   try {
@@ -64,16 +98,9 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString()
     };
 
-    if (isKvConfigured()) {
-      const kv = await getKv();
-      // Store in a list called 'reviews'
-      await kv.lpush('reviews', JSON.stringify(newReview));
-    } else {
-      // Local fallback
-      const reviews = readFallback();
-      reviews.unshift(newReview);
-      writeFallback(reviews);
-    }
+    const reviews = await getReviewsList();
+    reviews.unshift(newReview);
+    await saveReviewsList(reviews);
 
     return NextResponse.json({ success: true, review: newReview });
   } catch (error) {
@@ -92,17 +119,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    let reviews: Review[] = [];
-
-    if (isKvConfigured()) {
-      const kv = await getKv();
-      const rawReviews = await kv.lrange<string>('reviews', 0, -1);
-      reviews = rawReviews.map(r => (typeof r === 'string' ? JSON.parse(r) : r)) as Review[];
-    } else {
-      // Local fallback
-      reviews = readFallback();
-    }
-
+    const reviews = await getReviewsList();
     return NextResponse.json({ success: true, reviews });
   } catch (error) {
     console.error('API GET error:', error);
@@ -125,25 +142,9 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID requis' }, { status: 400 });
     }
 
-    if (isKvConfigured()) {
-      const kv = await getKv();
-      const rawReviews = await kv.lrange<string>('reviews', 0, -1);
-      const parsed = rawReviews.map(r => (typeof r === 'string' ? JSON.parse(r) : r)) as Review[];
-      
-      // Filter out the review to delete
-      const updated = parsed.filter((r: Review) => r.id !== id);
-      
-      // Clear current list and push back updated list
-      await kv.del('reviews');
-      for (const item of [...updated].reverse()) {
-        await kv.lpush('reviews', JSON.stringify(item));
-      }
-    } else {
-      // Local fallback
-      const reviews = readFallback();
-      const updated = reviews.filter(r => r.id !== id);
-      writeFallback(updated);
-    }
+    const reviews = await getReviewsList();
+    const updated = reviews.filter(r => r.id !== id);
+    await saveReviewsList(updated);
 
     return NextResponse.json({ success: true });
   } catch (error) {
