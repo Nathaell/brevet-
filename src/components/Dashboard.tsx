@@ -208,6 +208,46 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* ⭐ CTA Avis — Laisse-nous ton ressenti */}
+            <div
+              onClick={() => { soundManager.playClick(); setActiveView('reviews'); }}
+              className="cursor-pointer group relative overflow-hidden rounded-3xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/20 p-6 shadow-sm hover:shadow-lg hover:shadow-amber-200/40 dark:hover:shadow-amber-900/20 transition-all duration-300"
+            >
+              {/* Glow décoratif */}
+              <div className="absolute -top-8 -right-8 w-40 h-40 bg-amber-300/20 dark:bg-amber-500/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-500" />
+              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-yellow-300/20 dark:bg-yellow-500/10 rounded-full blur-2xl" />
+
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+                {/* Texte */}
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-400/30 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    ⭐
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-0.5">Ton avis compte</p>
+                    <h3 className="font-black text-slate-850 dark:text-slate-100 text-base md:text-lg leading-tight">
+                      Laisse-nous un avis !
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                      Dis-nous ce que tu penses du site — ça aide vraiment 🙏
+                    </p>
+                  </div>
+                </div>
+
+                {/* Étoiles + bouton */}
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="flex items-center gap-0.5">
+                    {[1,2,3,4,5].map((s) => (
+                      <span key={s} className="text-amber-400 text-xl">★</span>
+                    ))}
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-black rounded-2xl shadow-md shadow-amber-500/30 group-hover:shadow-amber-400/50 transition-all duration-200">
+                    Donner mon avis ➔
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Daily Quests Panel */}
             <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-5">
@@ -380,46 +420,6 @@ export const Dashboard: React.FC = () => {
                 </div>
               );
             })}
-
-            {/* ⭐ CTA Avis — Laisse-nous ton ressenti */}
-            <div
-              onClick={() => { soundManager.playClick(); setActiveView('reviews'); }}
-              className="cursor-pointer group relative overflow-hidden rounded-3xl border border-amber-200 dark:border-amber-800/50 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/20 p-6 shadow-sm hover:shadow-lg hover:shadow-amber-200/40 dark:hover:shadow-amber-900/20 transition-all duration-300"
-            >
-              {/* Glow décoratif */}
-              <div className="absolute -top-8 -right-8 w-40 h-40 bg-amber-300/20 dark:bg-amber-500/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-500" />
-              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-yellow-300/20 dark:bg-yellow-500/10 rounded-full blur-2xl" />
-
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-                {/* Texte */}
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-amber-400/30 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                    ⭐
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-0.5">Ton avis compte</p>
-                    <h3 className="font-black text-slate-850 dark:text-slate-100 text-base md:text-lg leading-tight">
-                      Laisse-nous un avis !
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                      Dis-nous ce que tu penses du site — ça aide vraiment 🙏
-                    </p>
-                  </div>
-                </div>
-
-                {/* Étoiles + bouton */}
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  <div className="flex items-center gap-0.5">
-                    {[1,2,3,4,5].map((s) => (
-                      <span key={s} className="text-amber-400 text-xl">★</span>
-                    ))}
-                  </div>
-                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-black rounded-2xl shadow-md shadow-amber-500/30 group-hover:shadow-amber-400/50 transition-all duration-200">
-                    Donner mon avis ➔
-                  </span>
-                </div>
-              </div>
-            </div>
 
           </div>
         )}
