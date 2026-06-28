@@ -9,7 +9,7 @@ interface Review {
   createdAt: string;
 }
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'brevet2026';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'nath2k10';
 const REVIEWS_BLOB_PATH = 'reviews/data.json';
 
 // Read all reviews from Vercel Blob (private store)
