@@ -34,6 +34,7 @@ async function saveReviewsList(reviews: Review[]): Promise<void> {
     access: 'private',
     contentType: 'application/json',
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 
