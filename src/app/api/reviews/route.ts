@@ -16,7 +16,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'brevet2026';
 
 // Unique free bucket ID for KVdb.io (100% free, no card, no signup)
 // Since this runs in Next.js Serverless API, the bucket ID is never exposed to the client
-const BUCKET_ID = 'nathan_brevet_reviews_prod_2026_9h2j5d8k';
+const BUCKET_ID = 'UCucUTyu3iKpYZHvSVLD46';
 const KVDB_URL = `https://kvdb.io/${BUCKET_ID}/reviews`;
 
 // Fallback file helpers (local dev)
