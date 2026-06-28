@@ -12,31 +12,19 @@ interface Review {
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'brevet2026';
 const REVIEWS_BLOB_PATH = 'reviews/data.json';
 
-// Read all reviews from Vercel Blob (private store — auth via Bearer token)
+// Read all reviews from Vercel Blob (private store)
 async function getReviewsList(): Promise<Review[]> {
   try {
     const { blobs } = await list({ prefix: REVIEWS_BLOB_PATH });
-    console.log('[getReviewsList] blobs found:', blobs.length, blobs.map(b => b.url));
-
     if (blobs.length === 0) return [];
 
     const blobToken = process.env.BLOB_READ_WRITE_TOKEN ?? '';
-    console.log('[getReviewsList] token present:', !!blobToken, 'length:', blobToken.length);
-
     const res = await fetch(blobs[0].url, {
       headers: { Authorization: `Bearer ${blobToken}` },
     });
-    console.log('[getReviewsList] fetch status:', res.status);
-
-    if (!res.ok) {
-      console.error('[getReviewsList] fetch error:', await res.text());
-      return [];
-    }
-    const data = await res.json() as Review[];
-    console.log('[getReviewsList] reviews count:', data.length);
-    return data;
-  } catch (e) {
-    console.error('[getReviewsList] exception:', e);
+    if (!res.ok) return [];
+    return (await res.json()) as Review[];
+  } catch {
     return [];
   }
 }
