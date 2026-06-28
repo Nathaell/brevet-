@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 
 interface Review {
   id: string;
@@ -12,21 +12,19 @@ interface Review {
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'brevet2026';
 const REVIEWS_BLOB_PATH = 'reviews/data.json';
 
-// Read all reviews from Vercel Blob
+// Read all reviews from Vercel Blob (private store — auth via Bearer token)
 async function getReviewsList(): Promise<Review[]> {
   try {
     const { blobs } = await list({ prefix: REVIEWS_BLOB_PATH });
     if (blobs.length === 0) return [];
 
-    // Pour les blobs privés, on fetch avec le token dans le header
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN || '';
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN ?? '';
+    // Private blobs accept the RW token as a Bearer header
     const res = await fetch(blobs[0].url, {
-      headers: {
-        Authorization: `Bearer ${blobToken}`,
-      },
+      headers: { Authorization: `Bearer ${blobToken}` },
     });
     if (!res.ok) return [];
-    return await res.json() as Review[];
+    return (await res.json()) as Review[];
   } catch {
     return [];
   }
@@ -104,7 +102,7 @@ export async function DELETE(request: Request) {
     }
 
     const reviews = await getReviewsList();
-    const updated = reviews.filter(r => r.id !== id);
+    const updated = reviews.filter((r) => r.id !== id);
     await saveReviewsList(updated);
 
     return NextResponse.json({ success: true });
