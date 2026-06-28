@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { put, head, del, list } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 
 interface Review {
   id: string;
@@ -15,12 +15,16 @@ const REVIEWS_BLOB_PATH = 'reviews/data.json';
 // Read all reviews from Vercel Blob
 async function getReviewsList(): Promise<Review[]> {
   try {
-    // List blobs to find our reviews file
     const { blobs } = await list({ prefix: REVIEWS_BLOB_PATH });
     if (blobs.length === 0) return [];
 
-    const blob = blobs[0];
-    const res = await fetch(blob.downloadUrl);
+    // Pour les blobs privés, on fetch avec le token dans le header
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN || '';
+    const res = await fetch(blobs[0].url, {
+      headers: {
+        Authorization: `Bearer ${blobToken}`,
+      },
+    });
     if (!res.ok) return [];
     return await res.json() as Review[];
   } catch {
