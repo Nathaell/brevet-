@@ -33,7 +33,7 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes }) => {
           >
             <div className="flex items-center justify-center gap-2">
               <Network className="w-5 h-5 animate-pulse" />
-              <span>{rootNode.label}</span>
+              <span dangerouslySetInnerHTML={{ __html: rootNode.label }} />
             </div>
           </div>
         )}
@@ -57,7 +57,7 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes }) => {
               >
                 {/* Visual connection dot */}
                 <div className={`w-2.5 h-2.5 rounded-full mb-2 ${isActive ? 'bg-white' : 'bg-violet-500'}`} />
-                <span className="font-bold text-sm md:text-base leading-snug">{node.label}</span>
+                <span className="font-bold text-sm md:text-base leading-snug" dangerouslySetInnerHTML={{ __html: node.label }} />
                 <span className="text-[10px] opacity-75 mt-1.5 flex items-center gap-0.5">
                   <Eye className="w-3 h-3" /> Cliquer pour explorer
                 </span>
@@ -80,13 +80,11 @@ export const MindMap: React.FC<MindMapProps> = ({ nodes }) => {
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-slate-800 dark:text-slate-100 text-lg flex items-center gap-1.5">
-                  {activeNode.label}
+                  <span dangerouslySetInnerHTML={{ __html: activeNode.label }} />
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                   <span className="text-xs font-normal text-slate-500 dark:text-slate-400">Détails d&apos;apprentissage</span>
                 </h4>
-                <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 leading-relaxed">
-                  {activeNode.description}
-                </p>
+                <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: activeNode.description ?? '' }} />
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
                     Concept-clé

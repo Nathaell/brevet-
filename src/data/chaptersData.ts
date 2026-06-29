@@ -2,6 +2,7 @@ import { Chapter } from '../types';
 import { historyChapters } from './historyChapters';
 import { geoChapters1 } from './geoChapters1';
 import { geoChapters2 } from './geoChapters2';
+import { mathChapters } from './mathChapters';
 
 const baseChapters: Chapter[] = [
   {
@@ -1491,5 +1492,6 @@ export const chaptersData: Chapter[] = [
   ...baseChapters,
   ...historyChapters,
   ...geoChapters1,
-  ...geoChapters2
+  ...geoChapters2,
+  ...mathChapters
 ];

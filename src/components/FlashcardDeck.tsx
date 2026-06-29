@@ -144,9 +144,7 @@ export const FlashcardDeck: React.FC<FlashcardDeckProps> = ({ flashcards, chapte
             </div>
 
             <div className="flex items-center justify-center text-center py-6 flex-grow">
-              <p className="text-lg md:text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-snug">
-                {currentCard.question}
-              </p>
+              <p className="text-lg md:text-xl font-extrabold text-slate-800 dark:text-slate-100 leading-snug" dangerouslySetInnerHTML={{ __html: currentCard.question }} />
             </div>
 
             <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-slate-450 dark:text-slate-500">
@@ -164,9 +162,7 @@ export const FlashcardDeck: React.FC<FlashcardDeckProps> = ({ flashcards, chapte
             </div>
 
             <div className="flex items-center justify-center text-center py-6 flex-grow">
-              <p className="text-base md:text-lg font-bold text-slate-100 leading-relaxed">
-                {currentCard.answer}
-              </p>
+              <p className="text-base md:text-lg font-bold text-slate-100 leading-relaxed" dangerouslySetInnerHTML={{ __html: currentCard.answer }} />
             </div>
 
             <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-slate-400">

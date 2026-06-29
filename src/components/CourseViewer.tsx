@@ -196,10 +196,12 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
                     <div>
                       <span className="font-bold block mb-0.5">Pièges fréquents du Brevet :</span>
                       <p className="text-xs">
-                        {chapter.number === 1 && "Ne confondez pas le déclencheur (Sarajevo, 1914) avec les causes profondes (nationalismes, alliances). Veillez à bien distinguer l'Armistice (arrêt des combats, 1918) et le Traité de Versailles (paix formelle définitive, 1919)."}
-                        {chapter.number === 2 && "Attention à ne pas assimiler nazisme et communisme stalinien sans nuance : bien que totalitaires tous deux, leurs bases idéologiques sont contraires (racisme biologique de race supérieure vs égalitarisme collectivisé sans classes)."}
-                        {chapter.number === 3 && "Ne confondez pas camps de concentration (travail forcé répressif, ex: Dachau) et centres de mise à mort (extermination immédiate industrielle, ex: Auschwitz). De même, distinguez Pétain (Vichy, collaboration) et De Gaulle (Résistance)."}
-                        {chapter.number === 4 && "Retenez que la Guerre froide n'a jamais été un affrontement militaire direct entre l'URSS et les États-Unis. Il s'agit de conflits périphériques (Vietnam, Corée) et idéologiques sous l'équilibre de la terreur."}
+                        {chapter.pitfalls ? <span dangerouslySetInnerHTML={{ __html: chapter.pitfalls }} /> : (<>
+                          {chapter.number === 1 && "Ne confondez pas le déclencheur (Sarajevo, 1914) avec les causes profondes (nationalismes, alliances). Veillez à bien distinguer l'Armistice (arrêt des combats, 1918) et le Traité de Versailles (paix formelle définitive, 1919)."}
+                          {chapter.number === 2 && "Attention à ne pas assimiler nazisme et communisme stalinien sans nuance : bien que totalitaires tous deux, leurs bases idéologiques sont contraires (racisme biologique de race supérieure vs égalitarisme collectivisé sans classes)."}
+                          {chapter.number === 3 && "Ne confondez pas camps de concentration (travail forcé répressif, ex: Dachau) et centres de mise à mort (extermination immédiate industrielle, ex: Auschwitz). De même, distinguez Pétain (Vichy, collaboration) et De Gaulle (Résistance)."}
+                          {chapter.number === 4 && "Retenez que la Guerre froide n'a jamais été un affrontement militaire direct entre l'URSS et les États-Unis. Il s'agit de conflits périphériques (Vietnam, Corée) et idéologiques sous l'équilibre de la terreur."}
+                        </>)}
                       </p>
                     </div>
                   </div>
@@ -214,7 +216,7 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
                   <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800 no-print">
                     <h3 className="font-black text-slate-800 dark:text-slate-100 text-lg mb-4 flex items-center gap-1.5">
                       <Sparkles className="w-5 h-5 text-yellow-500" />
-                      Le Savais-tu ? (Anecdotes historiques)
+                      Le Savais-tu ? {chapter.subject === 'mathematiques' ? '(Anecdotes mathématiques)' : '(Anecdotes historiques)'}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {chapter.anecdotes.map((anec, i) => (
@@ -302,9 +304,7 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
                       <span className="text-[10px] text-blue-600 dark:text-blue-400 font-extrabold tracking-wider block mb-1">
                         {char.dates} • {char.role}
                       </span>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
-                        {char.importance}
-                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold" dangerouslySetInnerHTML={{ __html: char.importance }} />
                     </div>
                   </div>
                 ))}
@@ -313,7 +313,7 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
 
             {activeTab === 'dates' && (
               <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-3xl p-6 shadow-sm overflow-hidden">
-                <h3 className="font-bold text-slate-800 dark:text-slate-150 text-sm mb-4">Repères Temporels Obligatoires</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-150 text-sm mb-4">{chapter.subject === 'mathematiques' ? 'Formules & Repères à connaître' : 'Repères Temporels Obligatoires'}</h3>
                 <div className="divide-y divide-slate-100 dark:divide-slate-850">
                   {chapter.dates.map((d, i) => (
                     <div key={i} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -321,13 +321,9 @@ export const CourseViewer: React.FC<CourseViewerProps> = ({ chapter, onBack }) =
                         <span className="font-extrabold text-blue-600 dark:text-blue-400 text-sm min-w-[120px]">
                           {d.date}
                         </span>
-                        <span className="font-extrabold text-slate-850 dark:text-slate-150 text-xs md:text-sm">
-                          {d.event}
-                        </span>
+                        <span className="font-extrabold text-slate-850 dark:text-slate-150 text-xs md:text-sm" dangerouslySetInnerHTML={{ __html: d.event }} />
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
-                        {d.explanation}
-                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md" dangerouslySetInnerHTML={{ __html: d.explanation }} />
                     </div>
                   ))}
                 </div>

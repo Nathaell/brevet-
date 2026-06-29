@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Question, Chapter } from '../types';
+import { htmlToReadable } from '../lib/richText';
 import { useProgress } from '../context/ProgressContext';
 import { soundManager } from './SoundManager';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,7 +71,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
       textToSpeak += ". Vrai ou Faux ? ";
     }
 
-    const cleanText = textToSpeak.replace(/\[|\]/g, ' '); // remove fill-in-the-blank brackets
+    const cleanText = htmlToReadable(textToSpeak.replace(/\[|\]/g, ' ')); // remove brackets + HTML tags
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'fr-FR';
     utterance.rate = 1.0;
@@ -132,42 +133,47 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
     // to guarantee we have an enormous and diverse pool of 100+ questions!
     const generated: Question[] = [];
 
-    // Generates Date matching questions
-    chapter.dates.forEach((d, index) => {
-      if (generated.length >= 10) return; // limit generated
-      
-      const otherEvents = chapter.dates.filter((_, i) => i !== index).map((o) => o.event);
-      const shuffledOptions = [d.event, ...otherEvents.slice(0, 3)].sort(() => Math.random() - 0.5);
+    // Les chapitres de maths utilisent leurs "dates" comme formules/repères et leurs
+    // "personnages" comme mathématiciens : la génération automatique formulée pour
+    // l'histoire (« événement historique », « fiche historique ») n'a pas de sens ici.
+    if (chapter.subject !== 'mathematiques') {
+      // Generates Date matching questions
+      chapter.dates.forEach((d, index) => {
+        if (generated.length >= 10) return; // limit generated
 
-      generated.push({
-        id: `gen_date_${index}`,
-        type: 'qcm',
-        difficulty: 'easy',
-        question: `Quel événement historique s'est déroulé le ${d.date} ?`,
-        options: shuffledOptions,
-        answer: d.event,
-        explanation: d.explanation,
-        mnemonic: "Retenez bien cette date, elle est incontournable pour le Brevet !",
+        const otherEvents = chapter.dates.filter((_, i) => i !== index).map((o) => o.event);
+        const shuffledOptions = [d.event, ...otherEvents.slice(0, 3)].sort(() => Math.random() - 0.5);
+
+        generated.push({
+          id: `gen_date_${index}`,
+          type: 'qcm',
+          difficulty: 'easy',
+          question: `Quel événement historique s'est déroulé le ${d.date} ?`,
+          options: shuffledOptions,
+          answer: d.event,
+          explanation: d.explanation,
+          mnemonic: "Retenez bien cette date, elle est incontournable pour le Brevet !",
+        });
       });
-    });
 
-    // Generates Character matching questions
-    chapter.characters.forEach((char, index) => {
-      if (generated.length >= 20) return;
-      
-      const otherNames = chapter.characters.filter((_, i) => i !== index).map((o) => o.name);
-      const shuffledOptions = [char.name, ...otherNames.slice(0, 3)].sort(() => Math.random() - 0.5);
+      // Generates Character matching questions
+      chapter.characters.forEach((char, index) => {
+        if (generated.length >= 20) return;
 
-      generated.push({
-        id: `gen_char_${index}`,
-        type: 'qcm',
-        difficulty: 'medium',
-        question: `Qui est décrit par cette fiche historique : "${char.importance}" ?`,
-        options: shuffledOptions,
-        answer: char.name,
-        explanation: `${char.name} (${char.dates}) était un(e) ${char.role}.`,
+        const otherNames = chapter.characters.filter((_, i) => i !== index).map((o) => o.name);
+        const shuffledOptions = [char.name, ...otherNames.slice(0, 3)].sort(() => Math.random() - 0.5);
+
+        generated.push({
+          id: `gen_char_${index}`,
+          type: 'qcm',
+          difficulty: 'medium',
+          question: `Qui est décrit par cette fiche historique : "${char.importance}" ?`,
+          options: shuffledOptions,
+          answer: char.name,
+          explanation: `${char.name} (${char.dates}) était un(e) ${char.role}.`,
+        });
       });
-    });
+    }
 
     // Mix preset and generated questions, slice to 10 questions for a quick revision session
     let finalQuestions = [...pool, ...generated];
@@ -330,7 +336,9 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
           Prêt à tester tes connaissances ?
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-          10 questions variées pour maîtriser le chapitre {chapter.number}.
+          {chapter.number === 0
+            ? `Série de questions variées : ${chapter.title}.`
+            : `10 questions variées pour maîtriser le chapitre ${chapter.number}.`}
         </p>
 
         {/* Difficulty Selection */}
@@ -457,9 +465,14 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
       {/* Question Card */}
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4 mb-6">
-          <h3 className="text-lg md:text-xl font-extrabold text-slate-850 dark:text-slate-155 leading-snug">
-            {currentQuestion.question}
-          </h3>
+          <h3
+            className="text-lg md:text-xl font-extrabold text-slate-850 dark:text-slate-155 leading-snug"
+            dangerouslySetInnerHTML={{
+              __html: currentQuestion.type === 'trous'
+                ? currentQuestion.question.replace(/\[.*?\]/g, '<span class="text-blue-500">____</span>')
+                : currentQuestion.question
+            }}
+          />
           <button
             onClick={() => {
               soundManager.playClick();
@@ -495,7 +508,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
                   onClick={() => { soundManager.playClick(); setSelectedOption(opt); }}
                   className={`w-full p-4 border rounded-2xl text-left font-semibold text-sm transition-all duration-150 flex items-center justify-between ${btnClass}`}
                 >
-                  <span>{opt}</span>
+                  <span dangerouslySetInnerHTML={{ __html: opt }} />
                   {isAnswered && opt === currentQuestion.answer && <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />}
                   {isAnswered && isSelected && opt !== currentQuestion.answer && <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />}
                 </button>
@@ -564,7 +577,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
                     </div>
                   );
                 }
-                return <span key={idx} className="text-slate-800 dark:text-slate-250 font-medium">{chunk}</span>;
+                return <span key={idx} className="text-slate-800 dark:text-slate-250 font-medium" dangerouslySetInnerHTML={{ __html: chunk }} />;
               })}
             </div>
           </div>
@@ -579,9 +592,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
               {/* Left Column (Keys) */}
               <div className="space-y-2">
                 {Object.keys(currentQuestion.answer).map((key) => (
-                  <div key={key} className="p-3.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300">
-                    {key}
-                  </div>
+                  <div key={key} className="p-3.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={{ __html: key }} />
                 ))}
               </div>
               {/* Right Column (Values Shuffled / Choose option) */}
@@ -608,12 +619,12 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
                       >
                         <option value="">Associer...</option>
                         {options.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
+                          <option key={opt} value={opt}>{htmlToReadable(opt)}</option>
                         ))}
                       </select>
                       {isAnswered && !isCorrect && (
                         <span className="text-[10px] text-green-600 dark:text-green-400 font-extrabold pl-1">
-                          Correct : {correctVal}
+                          Correct : {htmlToReadable(correctVal)}
                         </span>
                       )}
                     </div>
@@ -658,9 +669,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
                     }`}>
                       {arrayIdx + 1}
                     </span>
-                    <span className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200">
-                      {optionText}
-                    </span>
+                    <span className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200" dangerouslySetInnerHTML={{ __html: optionText }} />
                   </div>
                   {!isAnswered ? (
                     <div className="flex flex-col gap-1.5">
@@ -700,9 +709,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
             {isAnswered && (
               <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-800 rounded-2xl">
                 <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest block mb-2">Exemple de réponse attendue</span>
-                <p className="text-xs md:text-sm text-blue-900 dark:text-blue-300 leading-relaxed font-semibold">
-                  {currentQuestion.answer as string}
-                </p>
+                <p className="text-xs md:text-sm text-blue-900 dark:text-blue-300 leading-relaxed font-semibold" dangerouslySetInnerHTML={{ __html: currentQuestion.answer as string }} />
                 <div className="mt-4 border-t border-blue-100 dark:border-blue-800 pt-4">
                   <p className="text-xs font-bold text-slate-650 dark:text-slate-400 mb-3 text-center">
                     Votre réponse était-elle complète et correcte ?
@@ -749,21 +756,19 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
               <h4 className="font-extrabold text-slate-850 dark:text-slate-100 text-sm mb-2">
                 Explication détaillée :
               </h4>
-              <p className="text-xs md:text-sm text-slate-600 dark:text-slate-350 leading-relaxed mb-4">
-                {currentQuestion.explanation}
-              </p>
+              <p className="text-xs md:text-sm text-slate-600 dark:text-slate-350 leading-relaxed mb-4" dangerouslySetInnerHTML={{ __html: currentQuestion.explanation }} />
 
               {currentQuestion.mnemonic && (
                 <div className="mb-3 p-3 bg-violet-50 dark:bg-violet-950/20 text-violet-700 dark:text-violet-300 rounded-xl text-xs flex gap-2">
                   <span className="font-bold flex-shrink-0">💡 Astuce :</span>
-                  <span>{currentQuestion.mnemonic}</span>
+                  <span dangerouslySetInnerHTML={{ __html: currentQuestion.mnemonic }} />
                 </div>
               )}
 
               {currentQuestion.trap && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-650 dark:text-red-400 rounded-xl text-xs flex gap-2">
                   <span className="font-bold flex-shrink-0">⚠️ Piège fréquent :</span>
-                  <span>{currentQuestion.trap}</span>
+                  <span dangerouslySetInnerHTML={{ __html: currentQuestion.trap }} />
                 </div>
               )}
             </div>

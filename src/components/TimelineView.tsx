@@ -107,9 +107,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events }) => {
                   </div>
                   
                   <div className="flex justify-between items-start gap-4">
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base md:text-lg">
-                      {event.title}
-                    </h3>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base md:text-lg" dangerouslySetInnerHTML={{ __html: event.title }} />
                     {event.category && (
                       <span className={`text-[10px] uppercase font-semibold px-2 py-0.5 rounded ${catColor.split(' ')[0]} bg-opacity-10 text-opacity-100`}>
                         {CATEGORY_LABELS[event.category]}
@@ -117,9 +115,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ events }) => {
                     )}
                   </div>
 
-                  <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 leading-relaxed">
-                    {event.description}
-                  </p>
+                  <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: event.description }} />
 
                   {/* Expandable Explanation Details */}
                   <AnimatePresence>

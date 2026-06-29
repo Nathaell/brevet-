@@ -65,7 +65,7 @@ export interface Chapter {
   id: string;
   slug: string;
   number: number;
-  subject: 'histoire' | 'geographie';
+  subject: 'histoire' | 'geographie' | 'mathematiques';
   title: string;
   subtitle: string;
   introduction: string;
@@ -78,6 +78,7 @@ export interface Chapter {
   flashcards: Flashcard[];
   questions: Question[];
   anecdotes: string[]; // "Le savais-tu ?"
+  pitfalls?: string; // Pièges fréquents du Brevet (affiché en encart). Utilisé pour les maths.
   comparisonTable?: {
     headers: string[];
     rows: { title: string; values: string[] }[];

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { chaptersData } from '../data/chaptersData';
+import { automatismesQuestions } from '../data/automatismes';
 import { useProgress } from '../context/ProgressContext';
 import { CourseViewer } from './CourseViewer';
 import { ExamSimulator } from './ExamSimulator';
@@ -15,10 +16,19 @@ import {
   HelpCircle, Volume2, VolumeX, Award, Calendar, MessageSquare
 } from 'lucide-react';
 
+// Configuration d'affichage par matière (couleurs, libellés, emoji)
+const SUBJECTS = {
+  histoire: { emoji: '📜', label: 'Histoire', tag: 'Histoire', code: 'H', badge: 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400' },
+  geographie: { emoji: '🌍', label: 'Géographie', tag: 'Géo', code: 'G', badge: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400' },
+  mathematiques: { emoji: '📐', label: 'Mathématiques', tag: 'Maths', code: 'M', badge: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400' },
+} as const;
+
 export const Dashboard: React.FC = () => {
   const { stats, favorites, toggleSound } = useProgress();
-  const [activeView, setActiveView] = useState<'home' | 'chapter' | 'exam' | 'stats' | 'search' | 'quiz-select' | 'reviews'>('home');
+  const [activeView, setActiveView] = useState<'home' | 'chapter' | 'exam' | 'stats' | 'search' | 'quiz-select' | 'reviews' | 'automatismes'>('home');
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const [subjectFilter, setSubjectFilter] = useState<'all' | 'histoire' | 'geographie' | 'mathematiques'>('all');
+  const [autoQuizActive, setAutoQuizActive] = useState<boolean>(false);
   const [soundOn, setSoundOn] = useState(soundManager.isEnabled());
   
   // Custom standalone quiz setup states
@@ -72,7 +82,7 @@ export const Dashboard: React.FC = () => {
           >
             <span className="text-2xl">🎓</span>
             <span className="font-black text-base md:text-lg bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              Brevet Histoire-Géo 3e
+              Brevet 3e · Révisions
             </span>
           </div>
 
@@ -129,6 +139,17 @@ export const Dashboard: React.FC = () => {
             <span>Quiz Interactifs</span>
           </button>
           <button
+            onClick={() => { soundManager.playClick(); setAutoQuizActive(false); setActiveView('automatismes'); }}
+            className={`py-2 px-5 font-bold text-xs rounded-full border transition-all duration-150 flex items-center gap-1.5 ${
+              activeView === 'automatismes'
+                ? 'bg-blue-600 border-transparent text-white shadow-md shadow-blue-500/10'
+                : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Automatismes</span>
+          </button>
+          <button
             onClick={() => { soundManager.playClick(); setActiveView('exam'); }}
             className={`py-2 px-5 font-bold text-xs rounded-full border transition-all duration-150 flex items-center gap-1.5 ${
               activeView === 'exam'
@@ -177,7 +198,35 @@ export const Dashboard: React.FC = () => {
         {/* Views Router */}
         {activeView === 'home' && (
           <div className="space-y-12">
-            
+
+            {/* Sélecteur de matière à réviser */}
+            <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 text-center">
+                Que veux-tu réviser ?
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {([
+                  { key: 'all', emoji: '✨', label: 'Toutes' },
+                  { key: 'histoire', emoji: '📜', label: 'Histoire' },
+                  { key: 'geographie', emoji: '🌍', label: 'Géographie' },
+                  { key: 'mathematiques', emoji: '📐', label: 'Mathématiques' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => { soundManager.playClick(); setSubjectFilter(opt.key); }}
+                    className={`py-2 px-4 font-bold text-xs rounded-2xl border transition-all duration-150 flex items-center gap-1.5 ${
+                      subjectFilter === opt.key
+                        ? 'bg-blue-600 border-transparent text-white shadow-md shadow-blue-500/10'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{opt.emoji}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Hero Introduction banner */}
             <div className="bg-gradient-to-br from-blue-600 to-violet-650 text-white rounded-3xl p-8 shadow-xl shadow-blue-600/10 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 md:text-left text-center">
               {/* Backglow decoratives */}
@@ -186,13 +235,13 @@ export const Dashboard: React.FC = () => {
 
               <div className="flex-1 space-y-4 relative z-10">
                 <span className="inline-block px-3 py-1 bg-white/20 text-white font-extrabold text-[10px] rounded-full uppercase tracking-widest">
-                  Brevet d&apos;Histoire-Géographie
+                  Brevet des collèges · 3e
                 </span>
                 <h1 className="text-3xl md:text-4xl font-black leading-tight">
-                  Révisions Brevet Histoire-Géo
+                  Révisions Brevet 3e
                 </h1>
                 <p className="text-sm md:text-base text-blue-100 font-semibold max-w-md">
-                  Révise intelligemment, maîtrise tes chapitres d&apos;histoire et de géographie et réussis ton Brevet des collèges.
+                  Révise intelligemment, maîtrise tes chapitres d&apos;histoire, de géographie et de mathématiques et réussis ton Brevet des collèges.
                 </p>
                 <button
                   onClick={() => handleOpenChapter('ch1')}
@@ -327,29 +376,26 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Chapters Grid - grouped by subject */}
-            {(['histoire', 'geographie'] as const).map((subject) => {
+            {(['histoire', 'geographie', 'mathematiques'] as const).map((subject) => {
+              if (subjectFilter !== 'all' && subject !== subjectFilter) return null;
               const filteredChapters = chaptersData.filter(ch => {
                 const matchesSubject = ch.subject === subject;
-                const matchesSearch = searchQuery === '' || 
-                  ch.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                const matchesSearch = searchQuery === '' ||
+                  ch.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   ch.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
                   ch.introduction.toLowerCase().includes(searchQuery.toLowerCase());
                 return matchesSubject && matchesSearch;
               });
               if (filteredChapters.length === 0) return null;
-              const isHist = subject === 'histoire';
+              const cfg = SUBJECTS[subject];
               return (
                 <div key={subject} className="space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className={`text-2xl`}>{isHist ? '📜' : '🌍'}</span>
+                    <span className={`text-2xl`}>{cfg.emoji}</span>
                     <h3 className="font-black text-slate-850 dark:text-slate-100 text-lg md:text-xl">
-                      {isHist ? 'Histoire' : 'Géographie'}
+                      {cfg.label}
                     </h3>
-                    <span className={`px-2.5 py-0.5 font-extrabold text-[10px] rounded-full uppercase tracking-wider ${
-                      isHist
-                        ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400'
-                        : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
-                    }`}>
+                    <span className={`px-2.5 py-0.5 font-extrabold text-[10px] rounded-full uppercase tracking-wider ${cfg.badge}`}>
                       {filteredChapters.length} {filteredChapters.length > 1 ? 'chapitres' : 'chapitre'}
                     </span>
                   </div>
@@ -369,12 +415,8 @@ export const Dashboard: React.FC = () => {
                           <div>
                             {/* Tags */}
                             <div className="flex items-center justify-between mb-4">
-                              <span className={`px-2.5 py-0.5 font-extrabold text-[10px] rounded-full uppercase tracking-wider ${
-                                isHist
-                                  ? 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400'
-                                  : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400'
-                              }`}>
-                                {isHist ? 'Histoire' : 'Géo'} {ch.number}
+                              <span className={`px-2.5 py-0.5 font-extrabold text-[10px] rounded-full uppercase tracking-wider ${cfg.badge}`}>
+                                {cfg.tag} {ch.number}
                               </span>
                               
                               {/* Favorite/Status Badge */}
@@ -514,6 +556,13 @@ export const Dashboard: React.FC = () => {
                           </option>
                         ))}
                       </optgroup>
+                      <optgroup label="📐 Mathématiques">
+                        {chaptersData.filter(ch => ch.subject === 'mathematiques').map((ch) => (
+                          <option key={ch.id} value={ch.id}>
+                            M{ch.number} - {ch.title}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 
@@ -552,6 +601,57 @@ export const Dashboard: React.FC = () => {
 
         {activeView === 'reviews' && (
           <ReviewsView />
+        )}
+
+        {activeView === 'automatismes' && (
+          <div>
+            {autoQuizActive ? (
+              <QuizEngine
+                chapter={{
+                  id: 'automatismes',
+                  slug: 'automatismes',
+                  number: 0,
+                  subject: 'mathematiques' as const,
+                  title: 'Automatismes',
+                  subtitle: 'Calcul mental et réflexes',
+                  introduction: '',
+                  courseContent: '',
+                  summary: '',
+                  timeline: [],
+                  mindMap: [],
+                  characters: [],
+                  dates: [],
+                  flashcards: [],
+                  questions: automatismesQuestions,
+                  anecdotes: []
+                }}
+                isExamMode
+                onClose={() => setAutoQuizActive(false)}
+              />
+            ) : (
+              <div className="bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 p-8 rounded-3xl shadow-sm max-w-md mx-auto text-center">
+                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Zap className="w-8 h-8 animate-pulse" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-850 dark:text-slate-100 mb-2">
+                  Automatismes
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                  La nouvelle épreuve <span className="font-bold">calcul mental et réflexes</span> du Brevet 2026 :
+                  des questions rapides, <span className="font-bold">sans calculatrice</span>, sur tout le programme de maths.
+                </p>
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 mb-6 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  {automatismesQuestions.length} questions disponibles • série de 20 tirée au hasard • calcul de tête
+                </div>
+                <button
+                  onClick={() => { soundManager.playClick(); setAutoQuizActive(true); }}
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-750 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 transition-all duration-200"
+                >
+                  Démarrer les automatismes
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
       </main>
