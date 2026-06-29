@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Question, Chapter } from '../types';
 import { htmlToReadable } from '../lib/richText';
 import { useProgress } from '../context/ProgressContext';
@@ -41,6 +41,9 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
   const [failedQuestionIds, setFailedQuestionIds] = useState<string[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  // Réf vers les dernières valeurs (mises à jour à chaque rendu) : permet au chrono
+  // de valider la question COURANTE sans dépendre d'un état périmé.
+  const latestRef = useRef<{ handleSubmit: () => void; isAnswered: boolean }>({ handleSubmit: () => {}, isAnswered: false });
 
   // Stop speaking when question changes or when quiz is closed/unmounted
   useEffect(() => {
@@ -198,7 +201,6 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
     setTrousAnswers([]);
     setOrderAnswers([]);
     setSelfGrade(null);
-    setSecondsLeft(perQuestionSeconds ?? null);
     setQuizStarted(true);
   };
 
@@ -280,18 +282,39 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
     }
   };
 
-  // Décompte par question (mode automatismes). Le chrono est (ré)initialisé
-  // explicitement dans startQuiz et handleNextQuestion, pas ici, pour éviter
-  // qu'un ancien « 0 » déclenche une validation automatique sur la question suivante.
+  // Garde les dernières valeurs accessibles au timer (lecture au moment du tick).
+  latestRef.current = { handleSubmit, isAnswered };
+
+  // Décompte par question (mode automatismes). Un SEUL intervalle, lié à la
+  // question courante (clé = currentIndex). À 0, il valide automatiquement la
+  // question EN COURS. Au changement de question, l'intervalle est nettoyé puis
+  // recréé à neuf : aucune validation ne peut « déborder » sur la suivante.
   useEffect(() => {
-    if (!perQuestionSeconds || !quizStarted || isAnswered || secondsLeft === null) return;
-    if (secondsLeft <= 0) {
-      handleSubmit();
+    if (!perQuestionSeconds || !quizStarted || currentIndex < 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSecondsLeft(null);
       return;
     }
-    const t = setTimeout(() => setSecondsLeft((s) => (s === null || s <= 0 ? s : s - 1)), 1000);
-    return () => clearTimeout(t);
-  }, [secondsLeft, isAnswered, quizStarted, perQuestionSeconds]);
+    let remaining = perQuestionSeconds;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSecondsLeft(remaining);
+    const interval = setInterval(() => {
+      if (latestRef.current.isAnswered) {
+        clearInterval(interval);
+        return;
+      }
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setSecondsLeft(0);
+        if (!latestRef.current.isAnswered) latestRef.current.handleSubmit();
+      } else {
+        setSecondsLeft(remaining);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, quizStarted, perQuestionSeconds]);
 
   const handleNextQuestion = () => {
     soundManager.playClick();
@@ -303,7 +326,6 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
       setMatchingAnswers({});
       setTrousAnswers([]);
       setSelfGrade(null);
-      setSecondsLeft(perQuestionSeconds ?? null);
     } else {
       // Quiz finished
       const finalTime = Math.round((Date.now() - startTime) / 1000);
@@ -467,7 +489,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
           Question {currentIndex + 1} / {questions.length}
         </span>
         <div className="flex items-center gap-2">
-          {perQuestionSeconds && secondsLeft !== null && (
+          {perQuestionSeconds && secondsLeft !== null && !isAnswered && (
             <span className={`flex items-center gap-1 text-xs font-extrabold px-2.5 py-1 rounded-full transition-colors duration-200 ${
               secondsLeft <= 5
                 ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 animate-pulse'
