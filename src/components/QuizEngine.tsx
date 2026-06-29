@@ -13,6 +13,7 @@ interface QuizEngineProps {
   chapter: Chapter;
   difficulty?: 'easy' | 'medium' | 'hard' | 'expert';
   isExamMode?: boolean;
+  perQuestionSeconds?: number; // chrono par question (mode automatismes)
   onClose?: () => void;
 }
 
@@ -20,6 +21,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
   chapter,
   difficulty: initialDifficulty = 'easy',
   isExamMode = false,
+  perQuestionSeconds,
   onClose
 }) => {
   const { stats, addXP, completeQuiz } = useProgress();
@@ -38,6 +40,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [failedQuestionIds, setFailedQuestionIds] = useState<string[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   // Stop speaking when question changes or when quiz is closed/unmounted
   useEffect(() => {
@@ -276,6 +279,25 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
     }
   };
 
+  // Chrono par question (mode automatismes) : (ré)initialise à chaque nouvelle question
+  useEffect(() => {
+    if (perQuestionSeconds && quizStarted && currentIndex >= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSecondsLeft(perQuestionSeconds);
+    }
+  }, [currentIndex, quizStarted, perQuestionSeconds]);
+
+  // Décompte : quand il atteint 0, on valide automatiquement la réponse en cours
+  useEffect(() => {
+    if (!perQuestionSeconds || !quizStarted || isAnswered || secondsLeft === null) return;
+    if (secondsLeft <= 0) {
+      handleSubmit();
+      return;
+    }
+    const t = setTimeout(() => setSecondsLeft((s) => (s === null ? s : s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [secondsLeft, isAnswered, quizStarted, perQuestionSeconds]);
+
   const handleNextQuestion = () => {
     soundManager.playClick();
     if (currentIndex < questions.length - 1) {
@@ -448,9 +470,20 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
         <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
           Question {currentIndex + 1} / {questions.length}
         </span>
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-          <Timer className="w-4 h-4 text-blue-500" />
-          <span>{Math.floor(timeElapsed / 60)}:{(timeElapsed % 60).toString().padStart(2, '0')}</span>
+        <div className="flex items-center gap-2">
+          {perQuestionSeconds && secondsLeft !== null && (
+            <span className={`flex items-center gap-1 text-xs font-extrabold px-2.5 py-1 rounded-full transition-colors duration-200 ${
+              secondsLeft <= 5
+                ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 animate-pulse'
+                : 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
+            }`}>
+              <Timer className="w-3.5 h-3.5" /> {secondsLeft}s
+            </span>
+          )}
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <Timer className="w-4 h-4 text-blue-500" />
+            <span>{Math.floor(timeElapsed / 60)}:{(timeElapsed % 60).toString().padStart(2, '0')}</span>
+          </div>
         </div>
       </div>
 
@@ -488,6 +521,14 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
             {isSpeaking ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
         </div>
+
+        {/* Schéma / figure géométrique éventuel */}
+        {currentQuestion.figure && (
+          <div
+            className="mb-6 flex justify-center bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-2xl p-4 overflow-x-auto text-slate-700 dark:text-slate-200 [&_svg]:max-w-full [&_svg]:h-auto"
+            dangerouslySetInnerHTML={{ __html: currentQuestion.figure }}
+          />
+        )}
 
         {/* Render options based on type */}
         {(currentQuestion.type === 'qcm' || currentQuestion.type === 'date' || currentQuestion.type === 'personnage') && currentQuestion.options && (

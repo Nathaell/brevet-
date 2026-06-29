@@ -626,6 +626,7 @@ export const Dashboard: React.FC = () => {
                   anecdotes: []
                 }}
                 isExamMode
+                perQuestionSeconds={20}
                 onClose={() => setAutoQuizActive(false)}
               />
             ) : (
@@ -641,7 +642,7 @@ export const Dashboard: React.FC = () => {
                   des questions rapides, <span className="font-bold">sans calculatrice</span>, sur tout le programme de maths.
                 </p>
                 <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl p-4 mb-6 text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                  {automatismesQuestions.length} questions disponibles • série de 20 tirée au hasard • calcul de tête
+                  {automatismesQuestions.length} questions disponibles • série de 20 tirée au hasard • <span className="text-blue-600 dark:text-blue-400">⏱ 20 s par question</span> • calcul de tête
                 </div>
                 <button
                   onClick={() => { soundManager.playClick(); setAutoQuizActive(true); }}

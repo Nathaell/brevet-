@@ -21,6 +21,7 @@ export interface Question {
   mnemonic?: string;
   trap?: string;
   image?: string;
+  figure?: string; // SVG inline (schéma géométrique, repère, diagramme…)
 }
 
 export interface TimelineEvent {
