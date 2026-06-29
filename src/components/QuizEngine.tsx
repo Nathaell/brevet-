@@ -198,6 +198,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
     setTrousAnswers([]);
     setOrderAnswers([]);
     setSelfGrade(null);
+    setSecondsLeft(perQuestionSeconds ?? null);
     setQuizStarted(true);
   };
 
@@ -279,22 +280,16 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
     }
   };
 
-  // Chrono par question (mode automatismes) : (ré)initialise à chaque nouvelle question
-  useEffect(() => {
-    if (perQuestionSeconds && quizStarted && currentIndex >= 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSecondsLeft(perQuestionSeconds);
-    }
-  }, [currentIndex, quizStarted, perQuestionSeconds]);
-
-  // Décompte : quand il atteint 0, on valide automatiquement la réponse en cours
+  // Décompte par question (mode automatismes). Le chrono est (ré)initialisé
+  // explicitement dans startQuiz et handleNextQuestion, pas ici, pour éviter
+  // qu'un ancien « 0 » déclenche une validation automatique sur la question suivante.
   useEffect(() => {
     if (!perQuestionSeconds || !quizStarted || isAnswered || secondsLeft === null) return;
     if (secondsLeft <= 0) {
       handleSubmit();
       return;
     }
-    const t = setTimeout(() => setSecondsLeft((s) => (s === null ? s : s - 1)), 1000);
+    const t = setTimeout(() => setSecondsLeft((s) => (s === null || s <= 0 ? s : s - 1)), 1000);
     return () => clearTimeout(t);
   }, [secondsLeft, isAnswered, quizStarted, perQuestionSeconds]);
 
@@ -308,6 +303,7 @@ export const QuizEngine: React.FC<QuizEngineProps> = ({
       setMatchingAnswers({});
       setTrousAnswers([]);
       setSelfGrade(null);
+      setSecondsLeft(perQuestionSeconds ?? null);
     } else {
       // Quiz finished
       const finalTime = Math.round((Date.now() - startTime) / 1000);
